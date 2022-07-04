@@ -10,6 +10,13 @@ locals {
   cors_rules          = try(jsondecode(var.cors_rule), var.cors_rule)
   lifecycle_rules     = try(jsondecode(var.lifecycle_rule), var.lifecycle_rule)
   intelligent_tiering = try(jsondecode(var.intelligent_tiering), var.intelligent_tiering)
+
+  create_replication_configuration = (length(keys(var.replication_configuration)) > 0 
+    && contains(keys(var.replication_configuration), "role") && length(var.replication_configuration["role"]) > 0 
+    && (
+      contains(keys(var.replication_configuration), "rule") && length(var.replication_configuration["rule"]) > 0 
+      || contains(keys(var.replication_configuration), "rules") && length(var.replication_configuration["rules"]) > 0)
+    )
 }
 
 resource "aws_s3_bucket" "this" {
@@ -352,7 +359,7 @@ resource "aws_s3_bucket_object_lock_configuration" "this" {
 }
 
 resource "aws_s3_bucket_replication_configuration" "this" {
-  count = local.create_bucket && length(keys(var.replication_configuration)) > 0 ? 1 : 0
+  count = local.create_bucket && local.create_replication_configuration ? 1 : 0
 
   bucket = aws_s3_bucket.this[0].id
   role   = var.replication_configuration["role"]
